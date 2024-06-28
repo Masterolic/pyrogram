@@ -409,7 +409,10 @@ class Session:
                             self.client.name, amount, query_name)
 
                 await asyncio.sleep(amount)
-            except (OSError, InternalServerError, ServiceUnavailable) as e:
+            except (TimeoutError, OSError):
+                pass 
+                
+            except (InternalServerError, ServiceUnavailable) as e:
                 if retries == 0:
                     raise e from None
 
