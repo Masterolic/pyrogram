@@ -79,7 +79,7 @@ class TCP:
         else:
             is_proxy_ipv6 = isinstance(ip_address, ipaddress.IPv6Address)
 
-        proxy_family = socket.AF_INET6 if is_proxy_ipv6 else socket.AF_INET
+        proxy_family = socket.AF_INET if is_proxy_ipv6 else socket.AF_INET
         sock = socks.socksocket(proxy_family)
 
         sock.set_proxy(
