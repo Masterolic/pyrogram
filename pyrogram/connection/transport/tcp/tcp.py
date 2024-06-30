@@ -144,12 +144,10 @@ class TCP:
             try:
                 self.writer.write(data)
                 await self.writer.drain()
-            except RuntimeError:
-                await asyncio.sleep(10)
-                raise 
             except Exception as e:
                 log.info("Send exception: %s %s", type(e).__name__, e)
-                raise OSError(e)
+                await asyncio.sleep(5)
+                raise 
 
     async def recv(self, length: int = 0) -> Optional[bytes]:
         data = b""
