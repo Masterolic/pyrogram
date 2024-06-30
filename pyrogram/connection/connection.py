@@ -85,6 +85,7 @@ class Connection:
                         await self.connect()
                     except (ConnectionError,OSError):
                         log.warning("Connection failed! Trying again...")
+                        await asyncio.sleep(5)
                     else:
                          break
                         
