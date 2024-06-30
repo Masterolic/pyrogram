@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
+import asyncio, time 
 import logging
 from typing import Optional, Type
 
@@ -78,12 +78,12 @@ class Connection:
           try:
               await self.protocol.send(data)
           except Exception as e:
-              log.warning(f"socket:send Raised Exception {e}")
-              await asyncio.sleep(10)
+              log.warning(f"socket::send Raised Exception {e}")
+              time.sleep(10)
               while True:
                     try:
                         await self.connect()
-                    except (ConnectionError,OSError):
+                    except (IOError, ConnectionError, OSError):
                         log.warning("Connection failed! Trying again...")
                         await asyncio.sleep(5)
                     else:
