@@ -144,6 +144,9 @@ class TCP:
             try:
                 self.writer.write(data)
                 await self.writer.drain()
+            except RuntimeError:
+                await asyncio.sleep(10)
+                raise 
             except Exception as e:
                 log.info("Send exception: %s %s", type(e).__name__, e)
                 raise OSError(e)
