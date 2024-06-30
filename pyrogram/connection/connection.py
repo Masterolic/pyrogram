@@ -75,7 +75,18 @@ class Connection:
         log.info("Disconnected")
 
     async def send(self, data: bytes) -> None:
-        await self.protocol.send(data)
-
+          try:
+              await self.protocol.send(data)
+          except Exception as e:
+              log.warning(f"socket:send Raised Exception {e}")
+              await asyncio.sleep(10)
+              while True:
+                    try:
+                        await self.connect()
+                    except (ConnectionError,OSError):
+                        log.warning("Connection failed! Trying again...")
+                    else:
+                         break
+                        
     async def recv(self) -> Optional[bytes]:
         return await self.protocol.recv()
