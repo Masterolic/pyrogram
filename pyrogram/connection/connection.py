@@ -58,7 +58,7 @@ class Connection:
             except OSError as e:
                 log.warning("Unable to connect due to network issues: %s", e)
                 await self.protocol.close()
-                await asyncio.sleep(1)
+                time.sleep(1)
             else:
                 log.info("Connected! %s DC%s%s - IPv%s",
                          "Test" if self.test_mode else "Production",
