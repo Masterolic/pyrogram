@@ -56,7 +56,7 @@ class Connection:
                 log.info("Connecting...")
                 await self.protocol.connect(self.address)
             except OSError as e:
-                log.warning("Unable to connect due to network issues: %s IPv: %s IP: %s", e, self.ipv6, self.address)
+                log.warning("Unable to connect due to network issues: %s IPv6: %s IP: %s", e, self.ipv6, self.address)
                 await self.protocol.close()
                 await asyncio.sleep(1)
             else:
