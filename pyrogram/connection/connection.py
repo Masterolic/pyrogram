@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio, time 
+import asyncio
 import logging
 from typing import Optional, Type
 
@@ -56,9 +56,9 @@ class Connection:
                 log.info("Connecting...")
                 await self.protocol.connect(self.address)
             except OSError as e:
-                log.warning("Unable to connect due to network issues: %s", e)
+                log.warning("Unable to connect due to network issues: %s IPv: %s IP: %s", e, self.ipv6, self.address)
                 await self.protocol.close()
-                time.sleep(1)
+                await asyncio.sleep(1)
             else:
                 log.info("Connected! %s DC%s%s - IPv%s",
                          "Test" if self.test_mode else "Production",
@@ -79,7 +79,7 @@ class Connection:
               await self.protocol.send(data)
           except Exception as e:
               log.warning(f"socket::send Raised Exception {e}")
-              time.sleep(10)
+              await asyncio.sleep(10)
               while True:
                     try:
                         await self.connect()
