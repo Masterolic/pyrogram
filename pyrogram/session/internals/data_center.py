@@ -17,9 +17,10 @@
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Tuple
-
+from random import choice 
 
 class DataCenter:
+    DC_5 = [91.108.56.137, 91.108.56.130]
     TEST = {
         1: "149.154.175.10",
         2: "149.154.167.40",
@@ -31,7 +32,7 @@ class DataCenter:
         2: "149.154.167.51",
         3: "149.154.175.100",
         4: "149.154.167.91",
-        5: "91.108.56.130",
+        5: choice(DC_5),
         203: "91.105.192.100"
     }
 
