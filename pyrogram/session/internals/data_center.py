@@ -20,7 +20,7 @@ from typing import Tuple
 from random import choice 
 
 class DataCenter:
-    DC_5 = [91.108.56.137, 91.108.56.130]
+    DC_5 = ["91.108.56.137", "91.108.56.130"]
     TEST = {
         1: "149.154.175.10",
         2: "149.154.167.40",
