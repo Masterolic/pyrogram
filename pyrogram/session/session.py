@@ -412,7 +412,7 @@ class Session:
                 if amount > sleep_threshold >= 0:
                     raise
 
-                log.DEBUG('[%s] Waiting for %s seconds before continuing (required by "%s")',
+                log.debug('[%s] Waiting for %s seconds before continuing (required by "%s")',
                             self.client.name, amount, query_name)
 
                 await asyncio.sleep(amount)
