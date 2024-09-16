@@ -53,6 +53,7 @@ class TCP:
         self.writer: Optional[asyncio.StreamWriter] = None
 
         self.lock = asyncio.Lock()
+        self.read = asyncio.Lock()
         self.loop = asyncio.get_event_loop()
 
     async def _connect_via_proxy(
@@ -147,8 +148,8 @@ class TCP:
                 raise OSError(e)
 
     async def recv(self, length: int = 0) -> Optional[bytes]:
+      async with self.read:
         data = b""
-
         while len(data) < length:
             try:
                 chunk = await asyncio.wait_for(
