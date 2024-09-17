@@ -162,7 +162,7 @@ class SaveFile:
                     await session.start()
                 self.media_sessions['last_time'] = time.time()
 
-            workers = [self.loop.create_task(worker(session)) for _ in range(workers_count)]
+            workers = [self.loop.create_task(worker(session)) for session in range(workers_count)]
             queue = asyncio.Queue(1)
 
             try:
