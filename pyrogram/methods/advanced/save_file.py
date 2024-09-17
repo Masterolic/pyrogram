@@ -23,6 +23,7 @@ import io
 import logging
 import math
 import os
+import time
 from hashlib import md5
 from pathlib import PurePath
 from typing import Union, BinaryIO, Callable
@@ -143,14 +144,23 @@ class SaveFile:
             file_id = file_id or self.rnd_id()
             md5_sum = md5() if not is_big and not is_missing_part else None
             dc_id = await self.storage.dc_id()
-
-            session = self.media_sessions.get(dc_id)
-            if not session:
-                session = self.media_sessions[dc_id] = Session(
+            last_time = self.media_sessions('last_time')
+            if last_time:
+               time_diff = time.time() - last_time
+               if not time_diff >= 15 * 60:
+                  session = [ self.media_sessions.get(session_no) for session_no in range(4)]
+            else:
+                for session in self.media_sessions:
+                    await session.stop()
+                self.media_sessions.clear()
+                for session_no in range(4):
+                    session = self.media_sessions[session_no] = Session(
                     self, dc_id, await self.storage.auth_key(),
                     await self.storage.test_mode(), is_media=True
-                )
-                await session.start()
+                    )
+                for _ in range(4):
+                    await session.start()
+                self.media_sessions['last_time'] = time.time()
 
             workers = [self.loop.create_task(worker(session)) for _ in range(workers_count)]
             queue = asyncio.Queue(1)
