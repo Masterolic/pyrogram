@@ -144,7 +144,7 @@ class SaveFile:
             ) for _ in range(pool_size)
         ]
         workers = [self.loop.create_task(worker(session)) for session in pool for _ in range(workers_count)]
-        queue = asyncio.Queue(16)
+        queue = asyncio.Queue(1)
 
         try:
             for session in pool:
