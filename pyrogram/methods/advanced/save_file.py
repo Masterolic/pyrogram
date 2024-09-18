@@ -23,7 +23,6 @@ import io
 import logging
 import math
 import os
-import time
 from hashlib import md5
 from pathlib import PurePath
 from typing import Union, BinaryIO, Callable
@@ -129,10 +128,7 @@ class SaveFile:
             if file_size == 0:
                 raise ValueError("File size equals to 0 B")
 
-            if self.me and self.me.is_premium:
-                file_size_limit_mib = 4000
-            else:
-                file_size_limit_mib = 2000
+            file_size_limit_mib = 4000 if self.me.is_premium else 2000
 
             if file_size > file_size_limit_mib * 1024 * 1024:
                 raise ValueError(f"Can't upload files bigger than {file_size_limit_mib} MiB")
@@ -143,29 +139,16 @@ class SaveFile:
             is_missing_part = file_id is not None
             file_id = file_id or self.rnd_id()
             md5_sum = md5() if not is_big and not is_missing_part else None
-            dc_id = await self.storage.dc_id()
-            last_time = self.media_sessions('last_time')
-            if last_time:
-               time_diff = time.time() - last_time
-               if not time_diff >= 15 * 60:
-                  session = [ self.media_sessions.get(session_no) for session_no in range(4)]
-            else:
-                for session in self.media_sessions:
-                    await session.stop()
-                self.media_sessions.clear()
-                for session_no in range(4):
-                    session = self.media_sessions[session_no] = Session(
-                    self, dc_id, await self.storage.auth_key(),
-                    await self.storage.test_mode(), is_media=True
-                    )
-                for _ in range(4):
-                    await session.start()
-                self.media_sessions['last_time'] = time.time()
-
-            workers = [self.loop.create_task(worker(session)) for session in range(workers_count)]
+            session = Session(
+                self, await self.storage.dc_id(), await self.storage.auth_key(),
+                await self.storage.test_mode(), is_media=True
+            )
+            workers = [self.loop.create_task(worker(session)) for _ in range(workers_count)]
             queue = asyncio.Queue(1)
 
             try:
+                await session.start()
+
                 fp.seek(part_size * file_part)
 
                 while True:
@@ -236,6 +219,8 @@ class SaveFile:
                     await queue.put(None)
 
                 await asyncio.gather(*workers)
+
+                await session.stop()
 
                 if isinstance(path, (str, PurePath)):
                     fp.close()
