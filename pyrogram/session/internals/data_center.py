@@ -38,7 +38,8 @@ class DataCenter:
 
     PROD_MEDIA = {
         2: "149.154.167.151",
-        4: "149.154.164.250"
+        4: "149.154.164.250",
+        5: "91.108.56.137",
     }
 
     TEST_IPV6 = {
@@ -77,9 +78,6 @@ class DataCenter:
                     ip = cls.PROD_IPV6[dc_id]
             else:
                 if media:
-                    if dc_id == 5:
-                       ip = "91.108.56.137"
-                    else:
                          ip = cls.PROD_MEDIA.get(dc_id, cls.PROD[dc_id])
                 else:
                     ip = cls.PROD[dc_id]
