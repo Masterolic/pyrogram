@@ -32,7 +32,7 @@ class DataCenter:
         2: "149.154.167.51",
         3: "149.154.175.100",
         4: "149.154.167.91",
-        5: choice(DC_5),
+        5: "91.108.56.130",
         203: "91.105.192.100"
     }
 
@@ -77,7 +77,10 @@ class DataCenter:
                     ip = cls.PROD_IPV6[dc_id]
             else:
                 if media:
-                    ip = cls.PROD_MEDIA.get(dc_id, cls.PROD[dc_id])
+                    if dc_id == 5:
+                       ip == "91.108.56.137"
+                    else:
+                         ip = cls.PROD_MEDIA.get(dc_id, cls.PROD[dc_id])
                 else:
                     ip = cls.PROD[dc_id]
 
