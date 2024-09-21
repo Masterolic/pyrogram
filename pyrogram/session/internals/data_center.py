@@ -78,7 +78,7 @@ class DataCenter:
             else:
                 if media:
                     if dc_id == 5:
-                       ip == "91.108.56.137"
+                       ip = "91.108.56.137"
                     else:
                          ip = cls.PROD_MEDIA.get(dc_id, cls.PROD[dc_id])
                 else:
