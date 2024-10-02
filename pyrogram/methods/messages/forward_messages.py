@@ -18,7 +18,7 @@
 
 from datetime import datetime
 from typing import Union, List, Iterable
-import time.time
+import time 
 import pyrogram
 from pyrogram import raw, utils
 from pyrogram import types
