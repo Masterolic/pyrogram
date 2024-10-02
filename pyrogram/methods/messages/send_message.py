@@ -18,7 +18,7 @@
 
 from datetime import datetime
 from typing import Union, List, Optional
-
+import time.time
 import pyrogram
 from pyrogram import raw, utils, enums
 from pyrogram import types
@@ -180,7 +180,7 @@ class SendMessage:
                     quote_entities=quote_entities,
                     quote_offset=quote_offset,
                 ),
-                random_id=self.rnd_id(),
+                random_id= time.time(),
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
                 message=message,
