@@ -25,8 +25,9 @@ log = logging.getLogger(__name__)
 class MsgId:
     last_time = 0
     offset = 0
-
-    def __new__(cls) -> int:
+    def __new__(self):
+        return int(time.time() * 1000) + random.randint(1, 1000)
+    def close(cls) -> int:
         now = int(time.time())
         cls.offset = (cls.offset + 4) if now == cls.last_time else 0
         msg_id = (now * 2 ** 32) + cls.offset
