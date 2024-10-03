@@ -180,7 +180,7 @@ class SendMessage:
                     quote_entities=quote_entities,
                     quote_offset=quote_offset,
                 ),
-                random_id= int(time.time()),
+                random_id= self.rnd_id(),
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
                 message=message,
