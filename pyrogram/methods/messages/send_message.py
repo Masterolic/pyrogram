@@ -18,11 +18,12 @@
 
 from datetime import datetime
 from typing import Union, List, Optional
-import time
+import time, random
 import pyrogram
 from pyrogram import raw, utils, enums
 from pyrogram import types
-
+def random_id():
+        return int(time.time() * 1000) + random.randint(1, 1000)
 
 class SendMessage:
     async def send_message(
@@ -180,7 +181,7 @@ class SendMessage:
                     quote_entities=quote_entities,
                     quote_offset=quote_offset,
                 ),
-                random_id= self.rnd_id(),
+                random_id= random_id(),
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 reply_markup=await reply_markup.write(self) if reply_markup else None,
                 message=message,
