@@ -18,12 +18,13 @@
 
 from datetime import datetime
 from typing import Union, List, Iterable
-import time 
+import time , random
 import pyrogram
 from pyrogram import raw, utils
 from pyrogram import types
 
-
+def random_id():
+        return int(time.time() * 1000) + random.randint(1, 1000)
 class ForwardMessages:
     async def forward_messages(
         self: "pyrogram.Client",
@@ -98,7 +99,7 @@ class ForwardMessages:
                 from_peer=await self.resolve_peer(from_chat_id),
                 id=message_ids,
                 silent=disable_notification or None,
-                random_id=[self.rnd_id() for _ in message_ids],
+                random_id=[random_id() for _ in message_ids],
                 schedule_date=utils.datetime_to_timestamp(schedule_date),
                 drop_author=hide_sender_name,
                 drop_media_captions=hide_captions,
