@@ -224,6 +224,8 @@ def pyrogram_api():
             set_chat_permissions
             pin_chat_message
             unpin_chat_message
+            pin_forum_topic
+            unpin_forum_topic
             unpin_all_chat_messages
             get_chat
             get_chat_member
@@ -232,7 +234,6 @@ def pyrogram_api():
             get_dialogs
             get_dialogs_count
             set_chat_username
-            get_nearby_chats
             archive_chats
             unarchive_chats
             add_chat_members
@@ -323,8 +324,15 @@ def pyrogram_api():
         Payments
             apply_gift_code
             check_gift_code
+            convert_star_gift
             get_payment_form
+            get_star_gifts
+            get_user_star_gifts_count
+            get_user_star_gifts
+            hide_star_gift
             send_payment_form
+            send_star_gift
+            show_star_gift
         """,
         phone="""
         Phone
@@ -518,6 +526,7 @@ def pyrogram_api():
             PollOption
             Dice
             Reaction
+            StarGift
             VideoChatScheduled
             VideoChatStarted
             VideoChatEnded
@@ -806,6 +815,11 @@ def pyrogram_api():
         active_session="""
         ActiveSession
             ActiveSession.reset
+        """,
+        star_gift="""
+        StarGift
+            StarGift.save
+            StarGift.hide
         """
     )
 

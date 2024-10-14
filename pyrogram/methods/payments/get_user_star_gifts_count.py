@@ -16,43 +16,49 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-import pyrogram
-from pyrogram import raw
-from pyrogram import types
+import logging
 from typing import Union
 
+import pyrogram
+from pyrogram import raw
 
-class CloseForumTopic:
-    async def close_forum_topic(
+log = logging.getLogger(__name__)
+
+
+class GetUserStarGiftsCount:
+    async def get_user_star_gifts_count(
         self: "pyrogram.Client",
-        chat_id: Union[int, str],
-        topic_id: int
-    ) -> bool:
-        """Close a forum topic.
+        chat_id: Union[int, str]
+    ) -> int:
+        """Get the total count of star gifts of specified user.
 
-        .. include:: /_includes/usable-by/users-bots.rst
+        .. include:: /_includes/usable-by/users.rst
 
         Parameters:
             chat_id (``int`` | ``str``):
                 Unique identifier (int) or username (str) of the target chat.
-
-            topic_id (``int``):
-                Unique identifier (int) of the target forum topic.
+                For your personal cloud (Saved Messages) you can simply use "me" or "self".
+                For a contact that exists in your Telegram address book you can use his phone number (str).
 
         Returns:
-            ``bool``: On success, True is returned.
+            ``int``: On success, the star gifts count is returned.
 
         Example:
             .. code-block:: python
 
-                await app.close_forum_topic(chat_id, topic_id)
+                await app.get_user_star_gifts_count(chat_id)
         """
-        await self.invoke(
-            raw.functions.channels.EditForumTopic(
-                channel=await self.resolve_peer(chat_id),
-                topic_id=topic_id,
-                closed=True
+        peer = await self.resolve_peer(chat_id)
+
+        if not isinstance(peer, (raw.types.InputPeerUser, raw.types.InputPeerSelf)):
+            raise ValueError("chat_id must belong to a user.")
+
+        r = await self.invoke(
+            raw.functions.payments.GetUserStarGifts(
+                user_id=peer,
+                offset="",
+                limit=1
             )
         )
 
-        return True
+        return r.count

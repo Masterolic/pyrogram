@@ -223,6 +223,9 @@ class Message(Object, Update):
         video (:obj:`~pyrogram.types.Video`, *optional*):
             Message is a video, information about the video.
 
+        alternative_videos (List of :obj:`~pyrogram.types.Video`, *optional*):
+            Alternative qualities of the video, if the message is a video.
+
         voice (:obj:`~pyrogram.types.Voice`, *optional*):
             Message is a voice message, information about the file.
 
@@ -371,6 +374,9 @@ class Message(Object, Update):
         gift_code (:obj:`~pyrogram.types.GiftCode`, *optional*):
             Service message: gift code information.
 
+        star_gift (:obj:`~pyrogram.types.StarGift`, *optional*):
+            Service message: star gift information.
+
         requested_chats (:obj:`~pyrogram.types.RequestedChats`, *optional*):
             Service message: requested chats information.
 
@@ -464,6 +470,7 @@ class Message(Object, Update):
         invoice: "types.Invoice" = None,
         story: "types.Story" = None,
         video: "types.Video" = None,
+        alternative_videos: List["types.Video"] = None,
         voice: "types.Voice" = None,
         video_note: "types.VideoNote" = None,
         caption: Str = None,
@@ -506,6 +513,7 @@ class Message(Object, Update):
         video_chat_members_invited: "types.VideoChatMembersInvited" = None,
         web_app_data: "types.WebAppData" = None,
         gift_code: "types.GiftCode" = None,
+        star_gift: "types.StarGift" = None,
         requested_chats: "types.RequestedChats" = None,
         successful_payment: "types.SuccessfulPayment" = None,
         giveaway_launched: bool = None,
@@ -574,6 +582,7 @@ class Message(Object, Update):
         self.invoice = invoice
         self.story = story
         self.video = video
+        self.alternative_videos = alternative_videos
         self.voice = voice
         self.video_note = video_note
         self.caption = caption
@@ -618,6 +627,7 @@ class Message(Object, Update):
         self.video_chat_members_invited = video_chat_members_invited
         self.web_app_data = web_app_data
         self.gift_code = gift_code
+        self.star_gift = star_gift
         self.requested_chats = requested_chats
         self.successful_payment = successful_payment
         self.giveaway_launched = giveaway_launched
@@ -701,6 +711,7 @@ class Message(Object, Update):
             boosts_applied = None
             join_request_approved = None
             stars_amount = None
+            star_gift = None
 
             service_type = None
 
@@ -778,7 +789,7 @@ class Message(Object, Update):
                 stars_amount = getattr(action, "stars", None)
                 service_type = enums.MessageServiceType.GIVEAWAY_LAUNCH
             elif isinstance(action, raw.types.MessageActionGiftCode):
-                gift_code = types.GiftCode._parse(client, action, chats)
+                gift_code = types.GiftCode._parse(client, action, users, chats)
                 service_type = enums.MessageServiceType.GIFT_CODE
             elif isinstance(action, (raw.types.MessageActionRequestedPeer, raw.types.MessageActionRequestedPeerSentMe)):
                 requested_chats = types.RequestedChats._parse(client, action)
@@ -795,6 +806,9 @@ class Message(Object, Update):
             elif isinstance(action, raw.types.MessageActionChatJoinedByRequest):
                 join_request_approved = True
                 service_type = enums.MessageServiceType.JOIN_REQUEST_APPROVED
+            elif isinstance(action, raw.types.MessageActionStarGift):
+                star_gift = await types.StarGift._parse_action(client, message, users)
+                service_type = enums.MessageServiceType.STAR_GIFT
 
             from_user = types.User._parse(client, users.get(user_id, None))
             sender_chat = types.Chat._parse(client, message, users, chats, is_chat=False) if not from_user else None
@@ -830,6 +844,7 @@ class Message(Object, Update):
                 web_app_data=web_app_data,
                 giveaway_launched=giveaway_launched,
                 gift_code=gift_code,
+                star_gift=star_gift,
                 stars_amount=stars_amount,
                 requested_chats=requested_chats,
                 successful_payment=successful_payment,
@@ -921,6 +936,7 @@ class Message(Object, Update):
             voice = None
             animation = None
             video = None
+            alternative_videos = []
             video_note = None
             sticker = None
             document = None
@@ -1002,6 +1018,23 @@ class Message(Object, Update):
                                 video = types.Video._parse(client, doc, video_attributes, file_name, media.ttl_seconds)
                                 media_type = enums.MessageMediaType.VIDEO
                                 has_media_spoiler = media.spoiler
+
+                                altdocs = media.alt_documents or []
+                                for altdoc in altdocs:
+                                    if isinstance(altdoc, raw.types.Document):
+                                        altdoc_attributes = {type(i): i for i in altdoc.attributes}
+                                        altdoc_file_name = getattr(
+                                            altdoc_attributes.get(
+                                                raw.types.DocumentAttributeFilename, None
+                                            ), "file_name", None
+                                        )
+
+                                        altdoc_video_attribute = altdoc_attributes.get(raw.types.DocumentAttributeVideo, None)
+
+                                        if altdoc_video_attribute:
+                                            alternative_videos.append(
+                                                types.Video._parse(client, altdoc, altdoc_video_attribute, altdoc_file_name)
+                                            )
                         elif raw.types.DocumentAttributeAudio in attributes:
                             audio_attributes = attributes[raw.types.DocumentAttributeAudio]
 
@@ -1117,6 +1150,7 @@ class Message(Object, Update):
                 invoice=invoice,
                 story=story,
                 video=video,
+                alternative_videos=types.List(alternative_videos) if alternative_videos else None,
                 video_note=video_note,
                 sticker=sticker,
                 document=document,
