@@ -180,7 +180,7 @@ class Session:
             except Exception as e:
                 log.exception(e)
 
-        log.info("Session stopped")
+        log.info("Session stopped is media: %s", self.is_media)
 
     async def restart(self):
         await self.stop()
