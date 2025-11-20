@@ -580,6 +580,8 @@ def datetime_to_timestamp(dt: Optional[Union[datetime, timedelta]]) -> Optional[
     elif isinstance(dt, datetime):
         return int(dt.timestamp())
 
+def timedelta_to_total_seconds(dt: Optional[timedelta]) -> Optional[int]:
+    return int(dt.total_seconds()) if dt else None
 
 def get_first_url(text):
     text = re.sub(r"^\s*(<[\w<>=\s\"]*>)\s*", r"\1", text)

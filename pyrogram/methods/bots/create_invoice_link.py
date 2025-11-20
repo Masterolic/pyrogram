@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
+from datetime import timedelta
 from typing import Union, List, Optional
 
 import pyrogram
@@ -32,7 +32,7 @@ class CreateInvoiceLink:
         currency: str,
         prices: List["types.LabeledPrice"],
         provider_token: Optional[str] = None,
-        subscription_period: datetime = None,
+        subscription_period: timedelta = None,
         max_tip_amount: Optional[int] = None,
         suggested_tip_amounts: Optional[List[int]] = None,
         start_parameter: Optional[str] = None,
@@ -75,7 +75,7 @@ class CreateInvoiceLink:
             provider_token (``str``, *optional*):
                 Payment provider token, obtained via `@BotFather <https://t.me/botfather>`_. Pass an empty string for payments in `Telegram Stars <https://t.me/BotNews/90>`_.
 
-            subscription_period (:py:obj:`~datetime.datetime`, *optional*):
+            subscription_period (:py:obj:`~datetime.timedelta`, *optional*):
                 The number of seconds the subscription will be active for before the next payment.
                 The currency must be set to “XTR” (Telegram Stars) if the parameter is used.
                 Currently, it must always be 2592000 (30 days) if specified.
@@ -156,7 +156,7 @@ class CreateInvoiceLink:
                 email_to_provider=send_email_to_provider,
                 max_tip_amount=max_tip_amount,
                 suggested_tip_amounts=suggested_tip_amounts,
-                subscription_period=utils.datetime_to_timestamp(subscription_period)
+                subscription_period=utils.timedelta_to_total_seconds(subscription_period)
             ),
             payload=payload.encode() if isinstance(payload, str) else payload,
             provider=provider_token,
