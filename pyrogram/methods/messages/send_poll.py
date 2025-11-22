@@ -30,7 +30,7 @@ class SendPoll:
         self: "pyrogram.Client",
         chat_id: Union[int, str],
         question: str,
-        options: List[str],
+        options: List["types.InputPollOption"],
         is_anonymous: bool = True,
         type: "enums.PollType" = enums.PollType.REGULAR,
         allows_multiple_answers: Optional[bool] = None,
@@ -82,8 +82,8 @@ class SendPoll:
             question (``str``):
                 Poll question, 1-255 characters.
 
-            options (List of ``str``):
-                List of answer options, 2-12 strings 1-100 characters each.
+            options (List of :obj:`~pyrogram.types.InputPollOption`):
+                List of answer options to send.
 
             is_anonymous (``bool``, *optional*):
                 True, if the poll needs to be anonymous.
@@ -243,7 +243,7 @@ class SendPoll:
 
         for i, opt in enumerate(options):
             option, option_entities = (await utils.parse_text_entities(
-                self, opt, options_parse_mode, None
+                self, opt.text, options_parse_mode, opt.entities
             )).values()
 
             answers.append(

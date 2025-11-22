@@ -37,6 +37,7 @@ from .input_media_photo import InputMediaPhoto
 from .input_media_video import InputMediaVideo
 from .input_message_content import InputMessageContent
 from .input_phone_contact import InputPhoneContact
+from .input_poll_option import InputPollOption
 from .input_privacy_rule import InputPrivacyRule
 from .input_privacy_rule_allow_all import InputPrivacyRuleAllowAll
 from .input_privacy_rule_allow_bots import InputPrivacyRuleAllowBots
@@ -78,6 +79,7 @@ __all__ = [
     "InputMediaVideo",
     "InputMessageContent",
     "InputPhoneContact",
+    "InputPollOption",
     "InputPrivacyRule",
     "InputPrivacyRuleAllowAll",
     "InputPrivacyRuleAllowBots",

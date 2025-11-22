@@ -16,46 +16,33 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrogram.  If not, see <http://www.gnu.org/licenses/>.
 
-import pyrogram
+from pyrogram import types
 from ..object import Object
-from ..messages_and_media.message import Str
 
 from typing import List, Optional
 
 
-
-class PollOption(Object):
-    """Contains information about one answer option in a poll.
+class InputPollOption(Object):
+    """Describes a poll option to create.
 
     Parameters:
         text (``str``):
-            Option text, 1-100 characters.
+            Option text, 1–100 characters.
 
         entities (List of :obj:`~pyrogram.types.MessageEntity`, optional):
             List of special entities that appear in the option text.
 
-            Only :obj:`~pyrogram.enums.MessageEntityType.CUSTOM_EMOJI` entities are returned by the server.
-
-        voter_count (``int``):
-            Number of users that voted for this option.
-            Equals to 0 until you vote.
-
-        data (``bytes``):
-            The data this poll option is holding.
+            The server only accepts :obj:`~pyrogram.enums.MessageEntityType.CUSTOM_EMOJI` entities.
+            Other entity types (such as bold or italic) are silently ignored by the server:
+            they do not cause an error, but they are not rendered.
     """
 
     def __init__(
         self,
-        *,
-        client: "pyrogram.Client" = None,
         text: str,
-        entities: Optional[List["pyrogram.types.MessageEntity"]] = None,
-        voter_count: int,
-        data: bytes
+        entities: Optional[List["types.MessageEntity"]] = None,
     ):
-        super().__init__(client)
+        super().__init__()
 
         self.text = text
         self.entities = entities
-        self.voter_count = voter_count
-        self.data = data
