@@ -26,6 +26,7 @@ import re
 import shutil
 import sys
 import time
+import math
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -198,6 +199,10 @@ class Client(Methods):
             Defaults to False, because ``getpass`` (the library used) is known to be problematic in some
             terminal environments.
 
+        crypto_executor_workers (``int``, *optional*):
+            Set the maximum crypto executor workers value for a session.
+            Defaults to ``workers if workers < 5 else 5``.
+
         max_concurrent_transmissions (``int``, *optional*):
             Set the maximum amount of concurrent transmissions (uploads & downloads).
             A value that is too high may result in network related issues.
@@ -261,6 +266,7 @@ class Client(Methods):
     SAVED_GIFT_RE = re.compile(r"^(-\d+)_(\d+)$")
     CHANNEL_MESSAGE_LINK_RE = re.compile(r"^(?:https?://)?(?:www\.)?(?:t(?:elegram)?\.(?:org|me|dog)/(?:c/)?)([\w]+)(?:.+)?$")
     WORKERS = min(32, (os.cpu_count() or 0) + 4)  # os.cpu_count() can be None
+    CRYPTO_EXECUTOR_WORKERS = WORKERS if WORKERS < 5 else 5
     WORKDIR = PARENT_DIR
 
     # Interval of seconds in which the updates watchdog will kick in
@@ -302,6 +308,7 @@ class Client(Methods):
         takeout: Optional[bool] = None,
         sleep_threshold: int = Session.SLEEP_THRESHOLD,
         hide_password: Optional[bool] = False,
+        crypto_executor_workers: int = CRYPTO_EXECUTOR_WORKERS,
         max_concurrent_transmissions: int = MAX_CONCURRENT_TRANSMISSIONS,
         max_message_cache_size: int = MAX_MESSAGE_CACHE_SIZE,
         max_topic_cache_size: int = MAX_TOPIC_CACHE_SIZE,
@@ -346,6 +353,7 @@ class Client(Methods):
         self.takeout = takeout
         self.sleep_threshold = sleep_threshold
         self.hide_password = hide_password
+        self.crypto_executor_workers = crypto_executor_workers
         self.max_concurrent_transmissions = max_concurrent_transmissions
         self.max_message_cache_size = max_message_cache_size
         self.max_topic_cache_size = max_topic_cache_size
@@ -1074,12 +1082,13 @@ class Client(Methods):
     async def handle_download(self, packet):
         file_id, directory, file_name, in_memory, file_size, progress, progress_args = packet
 
+        max_workers = self.crypto_executor_workers
         os.makedirs(directory, exist_ok=True) if not in_memory else None
         temp_file_path = os.path.abspath(re.sub("\\\\", "/", os.path.join(directory, file_name))) + ".temp"
         file = BytesIO() if in_memory else open(temp_file_path, "wb")
 
         try:
-            async for chunk in self.get_file(file_id, file_size, 0, 0, progress, progress_args):
+            async for chunk in self.get_file(file_id, file_size, 0, 0, progress, progress_args, max_workers):
                 file.write(chunk)
         except BaseException as e:
             if not in_memory:
@@ -1110,7 +1119,8 @@ class Client(Methods):
         limit: int = 0,
         offset: int = 0,
         progress: Callable = None,
-        progress_args: tuple = ()
+        progress_args: tuple = (),
+        max_workers: int = 1
     ) -> AsyncGenerator[bytes, None]:
         async with self.get_file_semaphore:
             file_type = file_id.file_type
@@ -1152,16 +1162,41 @@ class Client(Methods):
                     thumb_size=file_id.thumbnail_size
                 )
 
-            current = 0
+            current = 0    
+            temporary = True
+            total_parts = None
             total = abs(limit) or (1 << 31) - 1
             chunk_size = 1024 * 1024
             offset_bytes = abs(offset) * chunk_size
 
             dc_id = file_id.dc_id
 
+            async def handle_progress(downloaded_bytes):
+                if not progress:
+                    return
+                func = functools.partial(
+                    progress,
+                    min(downloaded_bytes, file_size) if file_size != 0 else downloaded_bytes,
+                    file_size,
+                    *progress_args
+                )
+                if inspect.iscoroutinefunction(progress):
+                    asyncio.create_task(func())
+                else:
+                    self.loop.run_in_executor(self.executor, func)
+          
             try:
-                session = await self.get_session(dc_id, is_media=True)
-
+                try:
+                   session = await self.get_session(dc_id, is_media=True, temporary=True)
+                except Exception as e:
+                   temporary = False
+                   try:
+                       await session.stop()
+                   except:
+                       pass
+                   log.info(f"Reusing cached media session due to {e}")
+                   session = await self.get_session(dc_id, is_media=True)
+                   
                 r = await session.invoke(
                     raw.functions.upload.GetFile(
                         location=location,
@@ -1172,40 +1207,91 @@ class Client(Methods):
                 )
 
                 if isinstance(r, raw.types.upload.File):
-                    while True:
+                    if file_size and file_size > 0:
+                        total_parts = math.ceil(file_size / chunk_size)
+                    if limit:
+                        total_parts = abs(limit)
+
+                    if total_parts is None:
                         chunk = r.bytes
-
                         yield chunk
-
                         current += 1
                         offset_bytes += chunk_size
+                        await handle_progress(offset_bytes)
 
-                        if progress:
-                            func = functools.partial(
-                                progress,
-                                min(offset_bytes, file_size)
-                                if file_size != 0
-                                else offset_bytes,
-                                file_size,
-                                *progress_args
+                        while True:
+                            if len(chunk) < chunk_size or current >= total:
+                                break
+    
+                            r = await session.invoke(
+                                raw.functions.upload.GetFile(
+                                    location=location,
+                                    offset=offset_bytes,
+                                    limit=chunk_size
+                                ),
+                                sleep_threshold=30
                             )
+                            if not isinstance(r, raw.types.upload.File):
+                                break
+                            chunk = r.bytes
+                            yield chunk
+                            current += 1
+                            offset_bytes += chunk_size
+                            await handle_progress(offset_bytes)
+                    else:
+                        downloaded_bytes = 0
+                        parts: list[dict] = []
+                        parts_lock = asyncio.Lock()
+                        exceptions: list[Exception] = []
+                        concurrency = min(max_workers, total_parts)
+                        writer_lock = asyncio.Semaphore(concurrency)
+                        reader_lock = asyncio.Semaphore(concurrency * 10)            
+                        
+                        for i in range(total_parts):
+                            part = {
+                                "part_no": i,
+                                "is_completed": asyncio.Future(),
+                                "bytes": None
+                            }
+                            parts.append(part)
 
-                            if inspect.iscoroutinefunction(progress):
-                                await func()
-                            else:
-                                await self.loop.run_in_executor(self.executor, func)
+                        async def download_part(part: dict):
+                            nonlocal downloaded_bytes
+                            part_no = part["part_no"]
+                            local_offset = offset_bytes + part_no * chunk_size
+                            async with writer_lock:
+                                try:
+                                    r = await session.invoke(
+                                        raw.functions.upload.GetFile(location=location, offset=local_offset, limit=chunk_size),
+                                        sleep_threshold=30
+                                    )
+                                    if not isinstance(r, raw.types.upload.File):
+                                        raise RuntimeError(f"Unexpected response for part {part_no}: {type(r)}")
 
-                        if len(chunk) < chunk_size or current >= total:
-                            break
+                                    part["bytes"] = r.bytes
 
-                        r = await session.invoke(
-                            raw.functions.upload.GetFile(
-                                location=location,
-                                offset=offset_bytes,
-                                limit=chunk_size
-                            ),
-                            sleep_threshold=30
-                        )
+                                    async with parts_lock:
+                                        downloaded_bytes += len(r.bytes)
+                                        await handle_progress(min(downloaded_bytes, file_size))
+
+                                    part["is_completed"].set_result(True)
+                                except Exception as e:
+                                    if not part["is_completed"].done():
+                                        part["is_completed"].set_exception(e)
+                                    exceptions.append(e)
+
+                        tasks = [asyncio.create_task(download_part(part)) for part in parts]
+
+                        for part in parts:
+                            async with reader_lock:
+                                await part["is_completed"]
+                                yield part["bytes"]
+                                part["bytes"] = None
+
+                        await asyncio.gather(*tasks, return_exceptions=True)
+
+                        if exceptions:
+                            raise exceptions[0]
 
                 elif isinstance(r, raw.types.upload.FileCdnRedirect):
 
@@ -1293,6 +1379,9 @@ class Client(Methods):
                 raise
             except Exception as e:
                 log.exception(e)
+            finally:
+                if temporary:
+                    await session.stop()                    
 
     async def get_session(
         self,
@@ -1369,6 +1458,10 @@ class Client(Methods):
 
         if is_media:
             auth_key = (await self.get_session(dc_id)).auth_key
+
+            if temporary:
+                await self.get_session(dc_id, is_media=True)
+
         else:
             if not is_current_dc:
                 auth_key = await Auth(
@@ -1388,7 +1481,8 @@ class Client(Methods):
             port,
             auth_key,
             await self.storage.test_mode(),
-            is_media=is_media
+            is_media=is_media,
+            crypto_executor_workers=self.crypto_executor_workers
         )
 
         if not temporary:

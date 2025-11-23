@@ -88,7 +88,6 @@ class Session:
     PING_INTERVAL = 5
     RETRY_DELAY = 1
     STORED_MSG_IDS_MAX_SIZE = 1000 * 2
-    CRYPTO_EXECUTOR_WORKERS = 1
     MAX_CONSECUTIVE_IGNORED = 30
 
     def __init__(
@@ -101,6 +100,7 @@ class Session:
         test_mode: bool,
         is_media: bool = False,
         is_cdn: bool = False,
+        crypto_executor_workers: int = 1
     ):
         self.client = client
         self.dc_id = dc_id
@@ -110,6 +110,8 @@ class Session:
         self.test_mode = test_mode
         self.is_media = is_media
         self.is_cdn = is_cdn
+
+        self.crypto_executor_workers = crypto_executor_workers
 
         self.connection: Optional[Connection] = None
 
@@ -168,7 +170,7 @@ class Session:
             proxy=self.client.proxy,
             media=self.is_media,
             protocol_factory=self.client.protocol_factory,
-            crypto_executor_workers=self.CRYPTO_EXECUTOR_WORKERS,
+            crypto_executor_workers=self.crypto_executor_workers,
             loop=self.client.loop
         )
 
