@@ -139,6 +139,11 @@ class ThumbnailSource(IntEnum):
     CHAT_PHOTO_SMALL = 2  # DialogPhotoSmall
     CHAT_PHOTO_BIG = 3  # DialogPhotoBig
     STICKER_SET_THUMBNAIL = 4
+    FULL_LEGACY = 5
+    DIALOGPHOTO_SMALL_LEGACY = 6
+    DIALOGPHOTO_BIG_LEGACY = 7
+    STICKERSET_THUMBNAIL_LEGACY = 8
+    STICKERSET_THUMBNAIL_VERSION = 9
 
 
 # Photo-like file ids are longer and contain extra info, the rest are all documents
@@ -246,8 +251,8 @@ class FileId:
         media_id, access_hash = struct.unpack("<qq", buffer.read(16))
 
         if file_type in PHOTO_TYPES:
-            volume_id, = struct.unpack("<q", buffer.read(8))
-            thumbnail_source, = (0,) if major < 4 else struct.unpack("<i", buffer.read(4))
+            volume_id = struct.unpack('<q', buffer.read(8))[0] if minor < 32 else None
+            thumbnail_source = 0 if major < 4 else struct.unpack("<i", buffer.read(4))[0]
 
             try:
                 thumbnail_source = ThumbnailSource(thumbnail_source)
@@ -255,7 +260,7 @@ class FileId:
                 raise ValueError(f"Unknown thumbnail_source {thumbnail_source} of file_id {file_id}")
 
             if thumbnail_source == ThumbnailSource.LEGACY:
-                secret, local_id = struct.unpack("<qi", buffer.read(12))
+                secret = struct.unpack("<q", buffer.read(8))[0]
 
                 return FileId(
                     major=major,
@@ -268,14 +273,13 @@ class FileId:
                     volume_id=volume_id,
                     thumbnail_source=thumbnail_source,
                     secret=secret,
-                    local_id=local_id
                 )
 
             if thumbnail_source == ThumbnailSource.THUMBNAIL:
-                thumbnail_file_type, thumbnail_size, local_id = struct.unpack("<iii", buffer.read(12))
+                thumbnail_file_type, thumbnail_size = struct.unpack("<ii", buffer.read(8))
                 thumbnail_size = chr(thumbnail_size)
 
-                return FileId(
+                fileId = FileId(
                     major=major,
                     minor=minor,
                     file_type=file_type,
@@ -287,13 +291,13 @@ class FileId:
                     thumbnail_source=thumbnail_source,
                     thumbnail_file_type=thumbnail_file_type,
                     thumbnail_size=thumbnail_size,
-                    local_id=local_id
                 )
 
             if thumbnail_source in (ThumbnailSource.CHAT_PHOTO_SMALL, ThumbnailSource.CHAT_PHOTO_BIG):
-                chat_id, chat_access_hash, local_id = struct.unpack("<qqi", buffer.read(20))
+                chat_id, = struct.unpack("<q", buffer.read(8))
+                chat_access_hash = struct.unpack("<q", buffer.read(8))[0] if bf_len - buffer.tell() >= 8 else None
 
-                return FileId(
+                fileId = FileId(
                     major=major,
                     minor=minor,
                     file_type=file_type,
@@ -305,13 +309,12 @@ class FileId:
                     thumbnail_source=thumbnail_source,
                     chat_id=chat_id,
                     chat_access_hash=chat_access_hash,
-                    local_id=local_id
                 )
 
             if thumbnail_source == ThumbnailSource.STICKER_SET_THUMBNAIL:
-                sticker_set_id, sticker_set_access_hash, local_id = struct.unpack("<qqi", buffer.read(20))
+                chat_id, chat_access_hash = struct.unpack("<qq", buffer.read(16))
 
-                return FileId(
+                fileId = FileId(
                     major=major,
                     minor=minor,
                     file_type=file_type,
@@ -319,12 +322,14 @@ class FileId:
                     file_reference=file_reference,
                     media_id=media_id,
                     access_hash=access_hash,
-                    volume_id=volume_id,
                     thumbnail_source=thumbnail_source,
                     sticker_set_id=sticker_set_id,
                     sticker_set_access_hash=sticker_set_access_hash,
-                    local_id=local_id
+                    volume_id=volume_id
                 )
+            fileId.local_id = struct.unpack('<i', buffer.read(4))[0]\
+                if thumbnail_source == ThumbnailSource.FULL_LEGACY or 22 <= minor < 32 else None
+            return fileId
 
         if file_type in DOCUMENT_TYPES:
             return FileId(
