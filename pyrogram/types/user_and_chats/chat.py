@@ -1500,6 +1500,44 @@ class Chat(Object):
             chat_id=self.id,
             ttl_seconds=ttl_seconds
         )
+    
+    async def set_permissions(
+        self,
+        permissions: "types.ChatPermissions"
+    ) -> "types.Chat":
+        """Bound method *set_permissions* of :obj:`~pyrogram.types.Chat`.
+
+        Use as a shortcut for:
+
+        .. code-block:: python
+
+            await client.set_chat_permissions(
+                chat_id=chat_id,
+                permissions=ChatPermissions()
+            )
+
+        Example:
+            .. code-block:: python
+
+                await chat.set_permissions(chat_id, ChatPermissions())
+
+        Parameters:
+            chat_id (``int`` | ``str``):
+                Unique identifier (int) or username (str) of the target chat.
+
+            permissions (:obj:`~pyrogram.types.ChatPermissions`):
+                New default chat permissions.
+
+        Returns:
+            :obj:`~pyrogram.types.Chat`: On success, a chat object is returned.
+
+        Raises:
+            RPCError: In case of a Telegram RPC error.
+        """
+        return await self._client.set_permissions(
+            chat_id=self.id,
+            permissions=permissions
+        )
 
     async def ban_member(
         self,
@@ -1593,7 +1631,7 @@ class Chat(Object):
         permissions: "types.ChatPermissions",
         until_date: datetime = utils.zero_datetime(),
     ) -> "types.Chat":
-        """Bound method *unban_member* of :obj:`~pyrogram.types.Chat`.
+        """Bound method *restrict_member* of :obj:`~pyrogram.types.Chat`.
 
         Use as a shortcut for:
 
