@@ -52,6 +52,18 @@ class KeyboardButtonRequestChat(Object):
 
         bot_administrator_rights (:obj:`~pyrogram.types.ChatAdministratorRights`, *optional*):
             Privileged actions that an bot administrator is able to take.
+
+        request_title (``bool``, *optional*):
+            Pass True to request the chats' title
+            If not specified, the title won't be requested.
+
+        request_username (``bool``, *optional*):
+            Pass True to request the chats' username
+            If not specified, the username won't be requested.
+
+        request_photo (``bool``, *optional*):
+            Pass True to request the chats' photo
+            If not specified, the photo won't be requested.
     """
 
     def __init__(
@@ -63,7 +75,11 @@ class KeyboardButtonRequestChat(Object):
         chat_is_created: bool = None,
         bot_is_member: bool = None,
         user_administrator_rights: "types.ChatAdministratorRights" = None,
-        bot_administrator_rights: "types.ChatAdministratorRights" = None
+        bot_administrator_rights: "types.ChatAdministratorRights" = None,
+        request_title: bool = None,
+        request_username: bool = None,
+        request_photo: bool = None,
+        max_quantity: int = 1,  # Telegram ignores this field for chats
     ):
         super().__init__()
 
@@ -75,3 +91,7 @@ class KeyboardButtonRequestChat(Object):
         self.chat_is_forum = chat_is_forum
         self.user_administrator_rights = user_administrator_rights
         self.bot_administrator_rights = bot_administrator_rights
+        self.request_title = request_title
+        self.request_username = request_username
+        self.request_photo = request_photo
+        self.max_quantity = max_quantity
